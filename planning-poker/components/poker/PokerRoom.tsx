@@ -24,6 +24,11 @@ export const PokerRoom: React.FC<PokerRoomProps> = ({ roomName, userName, roomDa
     const currentUserVote = roomData.users?.[currentUserId]?.vote;
     const cardValues = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
 
+    // Calculate voting progress
+    const totalUsers = usersArray.length;
+    const votedUsers = usersArray.filter(user => user.vote !== null && user.vote !== undefined).length;
+    const votingProgress = totalUsers > 0 ? (votedUsers / totalUsers) * 100 : 0;
+
     return (
         <>
             <Head><title>Phòng: {roomName}</title></Head>
@@ -44,7 +49,27 @@ export const PokerRoom: React.FC<PokerRoomProps> = ({ roomName, userName, roomDa
 
                 <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
-                        <h2 className="text-xl font-bold mb-4 border-b pb-2">Người tham gia ({usersArray.length})</h2>
+                        <div className="flex items-center justify-between mb-4 border-b pb-2">
+                            <h2 className="text-xl font-bold">Người tham gia ({usersArray.length})</h2>
+                            <div className="text-sm">
+                                <span className={`font-medium ${votedUsers === totalUsers && totalUsers > 0 ? 'text-green-600' : 'text-gray-600'}`}>
+                                    {votedUsers}/{totalUsers} đã vote
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Voting Progress Bar */}
+                        <div className="mb-4">
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                    className={`h-2 rounded-full transition-all duration-300 ${
+                                        votedUsers === totalUsers && totalUsers > 0 ? 'bg-green-500' : 'bg-indigo-500'
+                                    }`}
+                                    style={{ width: `${votingProgress}%` }}
+                                ></div>
+                            </div>
+                        </div>
+
                         <div className="space-y-3">
                             {usersArray.map(user => (
                                 <Participant key={user.id} {...user} cardsVisible={roomData.cardsVisible} isCurrentUser={user.id === currentUserId} />

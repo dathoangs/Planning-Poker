@@ -10,8 +10,12 @@ export const usePokerRoom = (userId: string | null, roomName: string, userName: 
     useEffect(() => {
         if (!roomName || !userId) {
             setRoomData(null);
+            setError(null); // Clear error when no room/user
             return;
         };
+
+        // Clear any previous errors when starting to join a new room
+        setError(null);
 
         const roomRef = ref(db, `${appId}/public/data/rooms/${roomName}`);
         const userRef = ref(db, `${appId}/public/data/rooms/${roomName}/users/${userId}`);
@@ -20,22 +24,33 @@ export const usePokerRoom = (userId: string | null, roomName: string, userName: 
         const unsubscribe = onValue(roomRef, (snapshot) => {
             if (snapshot.exists()) {
                 setRoomData(snapshot.val() as RoomData);
+                setError(null); // Clear error when room is found
             } else {
-                // Nếu phòng không tồn tại, set data về null để component cha xử lý
-                setRoomData(null);
-                setError("Phòng không tồn tại hoặc đã bị xóa.");
+                // Only set error if we're actively trying to join a room
+                if (roomName && userId) {
+                    setRoomData(null);
+                    setError("Phòng không tồn tại hoặc đã bị xóa.");
+                }
             }
         });
 
         // Thêm người dùng vào phòng
         const join = async () => {
-             await update(userRef, { name: userName, vote: null });
-             // Tự động xóa người dùng khi họ ngắt kết nối
-             await onDisconnect(userRef).remove();
+            try {
+                await update(userRef, { name: userName, vote: null });
+                // Tự động xóa người dùng khi họ ngắt kết nối
+                await onDisconnect(userRef).remove();
+            } catch (error) {
+                console.error('Error joining room:', error);
+            }
         }
         join();
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribe();
+            // Clear error when component unmounts or room changes
+            setError(null);
+        };
     }, [roomName, userId, userName, appId]);
 
     const castVote = useCallback(async (vote: string) => {
@@ -57,7 +72,7 @@ export const usePokerRoom = (userId: string | null, roomName: string, userName: 
         const roomRef = ref(db, `${appId}/public/data/rooms/${roomName}`);
         const updates: Record<string, boolean | null> = { 'cardsVisible': false };
         Object.keys(roomData.users).forEach(uid => {
-            updates[`/users/${uid}/vote`] = null;
+            updates[`users/${uid}/vote`] = null;  // Removed leading slash
         });
         await update(roomRef, updates);
     }, [roomName, roomData, appId]);

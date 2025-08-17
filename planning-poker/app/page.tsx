@@ -62,15 +62,17 @@ export default function PlanningPokerPage() {
         actions.removeUser(); // Xóa user khỏi DB
         sessionStorage.removeItem('pokerRoomId');
         setRoomName('');
+        setJoinError(''); // Clear any join errors
         setView('join');
     }, [actions]);
 
     useEffect(() => {
-        if (roomError) {
-            alert(roomError);
+        // Only handle room errors when we're actually trying to stay in a room
+        if (roomError && view === 'room' && roomName) {
+            // Auto-redirect to join screen if room doesn't exist
             handleLeaveRoom();
         }
-    }, [roomError, handleLeaveRoom]);
+    }, [roomError, handleLeaveRoom, view, roomName]);
 
     const handleJoin = () => {
         if (!userName || !roomName) {
